@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% from "macros.html" import task_card, progress_bar, status_badge with context %}
+{% block title %}{{ hire.name }} · New Employee Onboarding{% endblock %}
+{% block content %}
+  <p class="back"><a href="{{ url_for('index') }}">← Back</a></p>
+  <section class="hero">
+    <p class="eyebrow">{{ hire.title or hire.department }}{% if hire.title %} · {{ hire.department }}{% endif %} · manager {{ manager.name }}</p>
+    <h1>{{ hire.name }} {{ status_badge(store.status(hire)) }}</h1>
+    <p>Starts {{ hire.start_date.strftime('%A, %b %-d') }} · {{ store.day_label(hire) }}</p>
+    <div class="hero-progress">
+      {{ progress_bar(progress) }}
+      <span>{{ progress.percent }}% · {{ progress.done }} of {{ progress.total }} tasks</span>
+    </div>
+    {% if progress.overdue %}
+      <p class="alert">{{ progress.overdue | length }} overdue: {{ progress.overdue | map(attribute='title') | join(', ') }}</p>
+    {% endif %}
+  </section>
+
+  <details class="panel add-task" {% if errors %}open{% endif %}>
+    <summary><strong>+ Add a task to {{ hire.name.split()[0] }}'s plan</strong>
+      <span class="sub">For anything the template doesn't cover.</span></summary>
+    {% macro field_error(name) %}{% if errors[name] %}<p class="error" id="task-{{ name }}-error">{{ errors[name] }}</p>{% endif %}{% endmacro %}
+    <form method="post" action="{{ url_for('add_task', hire_id=hire.person_id) }}" novalidate class="add-task-form">
+      <div class="field wide">
+        <label for="task-title">What needs to be done?</label>
+        <input id="task-title" name="title" value="{{ form.title or '' }}" maxlength="100"
+               placeholder="e.g. Pair with Jordan on the data pipeline"
+               {% if errors.title %}aria-invalid="true" aria-describedby="task-title-error"{% endif %}>
+        {{ field_error('title') }}
+      </div>
+      <div class="field wide">
+        <label for="task-description">Details <span class="sub">(optional)</span></label>
+        <input id="task-description" name="description" value="{{ form.description or '' }}" maxlength="300"
+               {% if errors.description %}aria-invalid="true"{% endif %}>
+        {{ field_error('description') }}
+      </div>
+      <div class="field">
+        <label for="task-owner">Who does it?</label>
+        <select id="task-owner" name="owner" {% if errors.owner %}aria-invalid="true"{% endif %}>
+          {% for key, label in OWNERS.items() %}
+            {% set selected = form.owner == key or (not form.owner and key == 'new_hire') %}
+            <option value="{{ key }}" {% if selected %}selected{% endif %}>
+              {{ label }}{% if key == 'new_hire' %} ({{ hire.name.split()[0] }}){% elif key == 'manager' %} ({{ manager.name.split()[0] }}){% endif %}
+            </option>
+          {% endfor %}
+        </select>
+        {{ field_error('owner') }}
+      </div>
+      <div class="field">
+        <label for="task-due">Due date</label>
+        <input id="task-due" name="due" type="date" value="{{ form.due or default_due }}" min="{{ today.isoformat() }}"
+               {% if errors.due %}aria-invalid="true"{% endif %}>
+        {{ field_error('due') }}
+      </div>
+      <div class="field">
+        <button type="submit" class="primary">Add task</button>
+      </div>
+    </form>
+  </details>
+
+  <div class="board">
+    {% for key, label in PHASES %}
+      {% set col = tasks | selectattr('phase', 'equalto', key) | list %}
+      <div class="column static">
+        <div class="col-head">
+          <span class="col-title">{{ label }}</span>
+          <span class="col-count">{{ col | selectattr('done') | list | length }}/{{ col | length }} done</span>
+        </div>
+        <div class="column-cards">
+          {% for t in col %}
+            {{ task_card(t, can_check(t), show_owner=True, removable=can_remove(t)) }}
+          {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% endblock %}

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}New Employee Onboarding · BrightPath{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="{{ url_for('index') }}"><span class="logo">◐</span> New Employee Onboarding <span class="brand-sub">BrightPath</span></a>
+    <form class="switcher" action="{{ url_for('switch_user') }}" method="get">
+      <label for="user_id">View as</label>
+      <select id="user_id" name="user_id" onchange="this.form.submit()">
+        <option value="" {% if not user %}selected{% endif %}>Choose a person…</option>
+        {% for p in people %}
+          <option value="{{ p.id }}" {% if user and user.id == p.id %}selected{% endif %}>
+            {{ p.name }} · {{ {'hr': 'HR', 'manager': p.title, 'new_hire': 'New hire'}[p.role] }}
+          </option>
+        {% endfor %}
+      </select>
+      <noscript><button type="submit">Go</button></noscript>
+    </form>
+  </header>
+
+  <main>
+    {% with messages = get_flashed_messages() %}
+      {% for m in messages %}<div class="flash" role="status">{{ m }}</div>{% endfor %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer>
+    Prototype · today is {{ today.strftime('%a, %b %-d, %Y') }} · sample data
+    <form action="{{ url_for('reset_demo') }}" method="post" class="inline"
+          onsubmit="return confirm('Reset all demo data to the original sample hires?')">
+      <button class="link" type="submit">Reset demo data</button>
+    </form>
+  </footer>
+</body>
+</html>

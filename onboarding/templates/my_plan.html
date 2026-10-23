@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% from "macros.html" import task_card, progress_bar with context %}
+{% block title %}My onboarding · New Employee Onboarding{% endblock %}
+{% block content %}
+  <section class="hero">
+    <p class="eyebrow">{{ store.day_label(hire) }} · {{ hire.title or hire.department }}</p>
+    <h1>Welcome, {{ hire.name.split()[0] }}!</h1>
+    <div class="hero-progress">
+      {{ progress_bar(progress) }}
+      <span>{{ progress.percent }}% of your onboarding is done</span>
+    </div>
+  </section>
+
+  <section class="focus-section">
+    <h2>Focus on now</h2>
+    {% if focus %}
+      <p class="hint">Just these for now. Everything else is in your plan below and will come up when it's time.</p>
+      <div class="focus-cards">
+        {% for t in focus %}{{ task_card(t, True, focus=True) }}{% endfor %}
+      </div>
+    {% elif rest %}
+      <p class="empty">Nothing needs you right now.</p>
+    {% else %}
+      <div class="empty celebrate">
+        <strong>You're all set 🎉</strong>
+        <p>You've finished every task in your onboarding plan. Nice work!</p>
+      </div>
+    {% endif %}
+  </section>
+
+  <section>
+    <h2>Your plan</h2>
+    <div class="board">
+      {% for col in board %}
+        <details class="column" {% if col.expanded %}open{% endif %}>
+          <summary>
+            <span class="col-title">{{ col.label }}</span>
+            <span class="col-count">
+              {% if col.open == 0 and col.tasks %}All done ✓
+              {% elif col.tasks %}{{ col.open }} to do
+              {% else %}No tasks{% endif %}
+            </span>
+          </summary>
+          <div class="column-cards">
+            {% for t in col.tasks %}{{ task_card(t, True, focus=t in focus) }}{% endfor %}
+          </div>
+        </details>
+      {% endfor %}
+    </div>
+  </section>
+
+  {% if others_tasks %}
+    <section class="handled">
+      <h2>Being handled for you</h2>
+      <ul>
+        {% for t in others_tasks %}
+          <li class="{% if t.done %}done{% endif %}">
+            <span>{% if t.done %}✓{% else %}○{% endif %}</span> {{ t.title }}
+            <span class="owner owner-{{ t.owner }}">{{ manager.name.split()[0] ~ ' (manager)' if t.owner == 'manager' else OWNERS[t.owner] }}</span>
+            <span class="sub">{{ t | due_label }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+{% endblock %}

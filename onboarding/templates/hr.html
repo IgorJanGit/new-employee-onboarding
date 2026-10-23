@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% from "macros.html" import hires_table, task_card with context %}
+{% block title %}HR · New Employee Onboarding{% endblock %}
+{% block content %}
+  <section class="hero">
+    <p class="eyebrow">HR</p>
+    <h1>Onboarding overview</h1>
+  </section>
+
+  <div class="hr-layout">
+    <div class="stack">
+    <section class="panel">
+      <h2>Add a new hire</h2>
+      <p class="hint">We'll build their plan from the company tasks plus their department's tasks, with due dates based on the start date.</p>
+      <form method="post" novalidate>
+        {% macro field_error(name) %}{% if errors[name] %}<p class="error" id="{{ name }}-error">{{ errors[name] }}</p>{% endif %}{% endmacro %}
+        <label for="name">Full name</label>
+        <input id="name" name="name" value="{{ form.name or '' }}" maxlength="80" required
+               {% if errors.name %}aria-invalid="true" aria-describedby="name-error"{% endif %}>
+        {{ field_error('name') }}
+
+        <label for="title">Job title <span class="sub">(optional)</span></label>
+        <input id="title" name="title" value="{{ form.title or '' }}" maxlength="80">
+        {{ field_error('title') }}
+
+        <label for="department">Department</label>
+        <select id="department" name="department" {% if errors.department %}aria-invalid="true"{% endif %}>
+          <option value="">Choose…</option>
+          {% for d in departments %}
+            <option value="{{ d }}" {% if form.department == d %}selected{% endif %}>{{ d }}</option>
+          {% endfor %}
+        </select>
+        <p class="sub">Departments without their own template use the General plan.</p>
+        {{ field_error('department') }}
+
+        <label for="manager_id">Manager</label>
+        <select id="manager_id" name="manager_id" {% if errors.manager_id %}aria-invalid="true"{% endif %}>
+          <option value="">Choose…</option>
+          {% for m in managers %}
+            <option value="{{ m.id }}" data-department="{{ m.department }}" {% if form.manager_id == m.id %}selected{% endif %}>{{ m.name }} · {{ m.title }}</option>
+          {% endfor %}
+        </select>
+        <p class="sub" id="manager-hint">Managers can only onboard people into their own department.</p>
+        {{ field_error('manager_id') }}
+
+        <label for="start_date">Start date</label>
+        <input id="start_date" name="start_date" type="date" value="{{ form.start_date or default_start }}"
+               {% if errors.start_date %}aria-invalid="true"{% endif %}>
+        {{ field_error('start_date') }}
+
+        <button type="submit" class="primary">Create onboarding plan</button>
+      </form>
+    </section>
+
+    {% if hires %}
+    <section class="panel" id="assign">
+      <h2>Assign a task</h2>
+      <p class="hint">Give one task to one or more new hires, for example a benefits webinar. Each person gets their own copy in their plan.</p>
+      {% macro assign_error(name) %}{% if assign_errors[name] %}<p class="error" id="assign-{{ name }}-error">{{ assign_errors[name] }}</p>{% endif %}{% endmacro %}
+      <form method="post" action="{{ url_for('hr_assign_task') }}#assign" novalidate>
+        <fieldset class="people-pick" {% if assign_errors.hire_ids %}aria-invalid="true" aria-describedby="assign-hire_ids-error"{% endif %}>
+          <legend>Assign to</legend>
+          <label class="pick-all"><input type="checkbox" id="pick-all"> Select all</label>
+          {% for h in hires %}
+            <label class="pick">
+              <input type="checkbox" name="hire_ids" value="{{ h.person_id }}"
+                     {% if h.person_id in (assign.hire_ids or []) %}checked{% endif %}>
+              {{ h.name }} <span class="sub">· {{ h.department }} · {{ store.day_label(h) }}</span>
+            </label>
+          {% endfor %}
+        </fieldset>
+        {{ assign_error('hire_ids') }}
+
+        <label for="assign-title">Task</label>
+        <input id="assign-title" name="title" value="{{ assign.title or '' }}" maxlength="100"
+               placeholder="e.g. Attend the benefits webinar"
+               {% if assign_errors.title %}aria-invalid="true" aria-describedby="assign-title-error"{% endif %}>
+        {{ assign_error('title') }}
+
+        <label for="assign-description">Details <span class="sub">(optional)</span></label>
+        <input id="assign-description" name="description" value="{{ assign.description or '' }}" maxlength="300"
+               {% if assign_errors.description %}aria-invalid="true"{% endif %}>
+        {{ assign_error('description') }}
+
+        <label for="assign-owner">Who does it?</label>
+        <select id="assign-owner" name="owner" {% if assign_errors.owner %}aria-invalid="true"{% endif %}>
+          {% for key, label in OWNERS.items() %}
+            {% set selected = assign.owner == key or (not assign.owner and key == 'new_hire') %}
+            <option value="{{ key }}" {% if selected %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        <p class="sub">"Manager" means each person's own manager.</p>
+        {{ assign_error('owner') }}
+
+        <label for="assign-due">Due date</label>
+        <input id="assign-due" name="due" type="date" value="{{ assign.due or default_due }}" min="{{ today.isoformat() }}"
+               {% if assign_errors.due %}aria-invalid="true"{% endif %}>
+        {{ assign_error('due') }}
+
+        <button type="submit" class="primary">Assign task</button>
+      </form>
+    </section>
+    {% endif %}
+    </div>
+
+    <section>
+      <h2>Everyone onboarding</h2>
+      {% if hires %}
+        {{ hires_table(hires, show_manager=True) }}
+      {% else %}
+        <div class="empty"><strong>No one is onboarding right now.</strong><p>Add a new hire to get started.</p></div>
+      {% endif %}
+
+      {% if hires %}
+        <h2>Your to-dos this week</h2>
+        {% if hr_later_count %}
+          <p class="hint">{{ hr_later_count }} more later. Open a new hire to see their full plan or add a task.</p>
+        {% endif %}
+        {% if hr_tasks %}
+          <div class="focus-cards">
+            {% for t in hr_tasks %}
+              <div>
+                <p class="for-whom">For {{ store.hires[t.hire_id].name }}</p>
+                {{ task_card(t, True) }}
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="empty">You're caught up. Nothing due for new hires this week.</p>
+        {% endif %}
+      {% endif %}
+    </section>
+  </div>
+  <script>
+    // Only offer managers from the chosen department (the server checks this too).
+    (() => {
+      const dept = document.getElementById("department");
+      const mgr = document.getElementById("manager_id");
+      const hint = document.getElementById("manager-hint");
+      function sync() {
+        const d = dept.value;
+        const options = [...mgr.options].filter((o) => o.value);
+        options.forEach((o) => {
+          const ok = o.dataset.department === d;
+          o.hidden = !ok;
+          o.disabled = !ok;
+        });
+        if (mgr.selectedOptions[0] && mgr.selectedOptions[0].disabled) mgr.value = "";
+        const matches = options.filter((o) => !o.disabled);
+        if (matches.length === 1 && !mgr.value) mgr.value = matches[0].value;
+        mgr.disabled = !d;
+        hint.textContent = d
+          ? `Showing ${d} managers only. Managers onboard people into their own department.`
+          : "Choose a department first.";
+      }
+      dept.addEventListener("change", sync);
+      sync();
+    })();
+
+    // "Select all" for the Assign a task checklist.
+    (() => {
+      const all = document.getElementById("pick-all");
+      if (!all) return;
+      const boxes = [...document.querySelectorAll('input[name="hire_ids"]')];
+      const sync = () => {
+        const n = boxes.filter((b) => b.checked).length;
+        all.checked = n === boxes.length;
+        all.indeterminate = n > 0 && n < boxes.length;
+      };
+      all.addEventListener("change", () => {
+        boxes.forEach((b) => (b.checked = all.checked));
+        sync();
+      });
+      boxes.forEach((b) => b.addEventListener("change", sync));
+      sync();
+    })();
+  </script>
+{% endblock %}

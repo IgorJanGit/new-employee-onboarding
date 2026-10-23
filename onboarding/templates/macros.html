@@ -1,0 +1,114 @@
+{% macro task_card(task, can_toggle, focus=False, show_owner=False, removable=False) %}
+  {% set overdue = store.is_overdue(task) %}
+  {% set party = party_of(task) %}
+  {# For a dual task, what the viewer toggles is their own confirmation. #}
+  {% set mine = task.done_by(party) if (task.dual and party) else task.done %}
+  {% set waiting = task.dual and task.confirmed and not task.done %}
+  {% if task.dual %}
+    {% set on = 'Confirm' %}{% set off = 'Undo your confirmation' %}
+  {% else %}
+    {% set on = 'Mark done' %}{% set off = 'Mark not done' %}
+  {% endif %}
+  <article class="card {% if task.done %}done{% endif %} {% if waiting %}waiting{% endif %} {% if overdue %}overdue{% endif %} {% if focus %}focus{% endif %} {% if can_toggle %}clickable{% endif %}">
+    {% if can_toggle %}
+      {# The whole card is the click target: the button stretches over it. #}
+      <form method="post" action="{{ url_for('toggle_task', task_id=task.id) }}" class="check-form">
+        <input type="hidden" name="done" value="{{ '0' if mine else '1' }}">
+        <input type="hidden" name="next" value="{{ request.path }}">
+        <button type="submit" class="card-hit" aria-pressed="{{ 'true' if mine else 'false' }}"
+                aria-label="{{ off if mine else on }}: {{ task.title }}"
+                title="Click to {{ (off if mine else on) | lower }}"></button>
+      </form>
+    {% endif %}
+    <span class="check {% if not can_toggle %}readonly{% endif %} {% if mine and not task.done %}half{% endif %}" aria-hidden="true">
+      {% if task.done or mine %}✓{% endif %}
+    </span>
+    <div class="card-body">
+      <h4>{{ task.title }}</h4>
+      <p>{{ task.description }}</p>
+      <div class="meta">
+        <span class="due {% if overdue %}due-overdue{% endif %}">{{ task | due_label }}</span>
+        {% if show_owner %}
+          <span class="owner owner-{{ task.owner }}">{{ OWNERS[task.owner] }}</span>
+        {% endif %}
+        {% if task.dual %}
+          {% set hire = store.hires[task.hire_id] %}
+          {% set names = {'new_hire': hire.name.split()[0], 'manager': store.people[hire.manager_id].name.split()[0]} %}
+          <span class="dual" title="Done once both confirm">
+            {% for p in ['new_hire', 'manager'] %}
+              <span class="signoff {% if p in task.confirmed %}signed{% endif %}">
+                {{ '✓' if p in task.confirmed else '○' }} {{ 'You' if p == party else names[p] }}
+              </span>
+            {% endfor %}
+          </span>
+          {% if waiting %}
+            <span class="waiting-on">Waiting for {{ 'you' if task.waiting_on[0] == party else names[task.waiting_on[0]] }}</span>
+          {% endif %}
+        {% endif %}
+        {% if task.created_by %}
+          <span class="added-by">Added by {{ store.people[task.created_by].name.split()[0] if task.created_by in store.people else 'someone' }}</span>
+        {% endif %}
+      </div>
+    </div>
+    {% if removable %}
+      <form method="post" action="{{ url_for('delete_task', task_id=task.id) }}" class="remove-form"
+            onsubmit="return confirm('Remove “{{ task.title|e }}” from the plan?')">
+        <button type="submit" class="remove" aria-label="Remove task: {{ task.title }}" title="Remove this task">✕</button>
+      </form>
+    {% endif %}
+  </article>
+{% endmacro %}
+
+{% macro progress_bar(progress) %}
+  <div class="progress" role="progressbar" aria-valuenow="{{ progress.percent }}"
+       aria-valuemin="0" aria-valuemax="100" aria-label="Onboarding progress">
+    <div class="progress-fill" style="width: {{ progress.percent }}%"></div>
+  </div>
+{% endmacro %}
+
+{% macro status_badge(status) %}
+  {% set labels = {'complete': 'Complete', 'attention': 'Needs attention',
+                   'preboarding': 'Pre-boarding', 'on_track': 'On track'} %}
+  <span class="badge badge-{{ status }}">{{ labels[status] }}</span>
+{% endmacro %}
+
+{% macro hires_table(hires, show_manager=False) %}
+  <table class="hires">
+    <thead>
+      <tr>
+        <th>New hire</th>
+        {% if show_manager %}<th>Manager</th>{% endif %}
+        <th>Start date</th>
+        <th>Progress</th>
+        <th>Overdue</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for h in hires %}
+        {% set p = store.progress(h.person_id) %}
+        <tr {% if p.overdue %}class="row-overdue"{% endif %}>
+          <td>
+            <a href="{{ url_for('hire_detail', hire_id=h.person_id) }}"><strong>{{ h.name }}</strong></a>
+            <div class="sub">{{ h.title or h.department }}{% if h.title %} · {{ h.department }}{% endif %}</div>
+          </td>
+          {% if show_manager %}<td>{{ store.people[h.manager_id].name }}</td>{% endif %}
+          <td>{{ h.start_date.strftime('%b %-d') }}<div class="sub">{{ store.day_label(h) }}</div></td>
+          <td class="progress-cell">
+            {{ progress_bar(p) }}
+            <div class="sub">{{ p.percent }}% · {{ p.done }}/{{ p.total }} tasks</div>
+          </td>
+          <td>
+            {% if p.overdue %}
+              <span class="overdue-count" title="{{ p.overdue | map(attribute='title') | join(', ') }}">
+                {{ p.overdue | length }} overdue
+              </span>
+              <div class="sub">{{ p.overdue[0].title }}{% if p.overdue|length > 1 %} +{{ p.overdue|length - 1 }} more{% endif %}</div>
+            {% else %}<span class="sub">None</span>{% endif %}
+          </td>
+          <td>{{ status_badge(store.status(h)) }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endmacro %}

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+  <section class="hero">
+    <h1>Who's using the prototype?</h1>
+    <p>No real logins here. Pick a person to see onboarding from their point of view.</p>
+  </section>
+  <div class="people-grid">
+    {% for p in people %}
+      <a class="person" href="{{ url_for('switch_user', user_id=p.id) }}">
+        <span class="avatar">{{ p.name[0] }}</span>
+        <strong>{{ p.name }}</strong>
+        <span class="sub">
+          {% if p.role == 'new_hire' %}New hire · {{ store.hires[p.id].title or store.hires[p.id].department }}
+          {% else %}{{ p.title }}{% endif %}
+        </span>
+      </a>
+    {% endfor %}
+  </div>
+{% endblock %}

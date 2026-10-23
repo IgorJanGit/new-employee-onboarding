@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "macros.html" import hires_table, task_card with context %}
+{% block title %}My new hires · New Employee Onboarding{% endblock %}
+{% block content %}
+  <section class="hero">
+    <p class="eyebrow">{{ user.title }}</p>
+    <h1>Your new hires</h1>
+  </section>
+
+  {% if hires %}
+    {{ hires_table(hires) }}
+  {% else %}
+    <div class="empty">
+      <strong>No new hires yet</strong>
+      <p>When HR creates an onboarding plan with you as the manager, the person will show up here.</p>
+    </div>
+  {% endif %}
+
+  {% if hires %}
+    <section>
+      <h2>Your to-dos this week</h2>
+      {% if later_count %}
+        <p class="hint">{{ later_count }} more later in their onboarding. Open a new hire to see their full plan.</p>
+      {% endif %}
+      {% if my_tasks %}
+        <div class="focus-cards">
+          {% for t in my_tasks %}
+            <div>
+              <p class="for-whom">For {{ store.hires[t.hire_id].name }}</p>
+              {{ task_card(t, True) }}
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="empty">You're caught up. Nothing due for your new hires this week.</p>
+      {% endif %}
+    </section>
+  {% endif %}
+{% endblock %}

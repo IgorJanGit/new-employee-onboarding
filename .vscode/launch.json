@@ -1,0 +1,26 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run New Employee Onboarding",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "flask",
+      "env": {
+        "FLASK_APP": "onboarding:create_app",
+        "FLASK_DEBUG": "1"
+      },
+      "args": ["run", "--port", "5050"],
+      "jinja": true,
+      "justMyCode": true
+    },
+    {
+      "name": "Run tests",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["-q"],
+      "justMyCode": false
+    }
+  ]
+}
