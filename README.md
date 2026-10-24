@@ -29,6 +29,8 @@ pytest
 
 ## The workflow (end to end)
 
+The steps below are in setup order, starting with HR creating the plan. The primary user is still the new hire; HR's part is a one-time setup.
+
 1. **HR (Sarah) adds a new hire**: name, department, manager and start date (job title is optional). Only managers from the chosen department can be picked.
 2. **The app builds the plan automatically**: company tasks plus that department's tasks. Due dates are calculated from the start date.
 3. **The new hire sees "Focus on now"**: at most 3 tasks that are overdue or due in the next few days. Below that is the full plan as Trello-style columns: **Before day 1, Week 1, Weeks 2–4**. Later phases start collapsed. They check tasks off and the progress bar updates.
