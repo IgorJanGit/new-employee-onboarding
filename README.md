@@ -114,6 +114,31 @@ Some things I assumed wouldn't come up, or felt out of scope for a first version
 9. Which HR system holds new hires today? Plans could be created automatically from it.
 10. Does anyone report to a manager outside their department? If so, we'd need to allow it with a warning.
 
+## Data model
+
+My original design is in [docs/data-structure.pdf](docs/data-structure.pdf). The core idea is unchanged: **templates are fixed definitions, and creating a new hire copies the template tasks into that person's own task list with real dates.** So checking off a task never changes the template, and each person's progress is tracked separately.
+
+How a plan is generated (`Store.add_hire` in `onboarding/store.py`):
+
+```
+company tasks + department tasks (or General)  →  due date = start date + offset  →  tasks saved on that new hire
+```
+
+The design changed as requirements came in. What's built differs from the diagram in these places:
+
+| In the diagram | What's built | Why |
+|---|---|---|
+| `priority` (high / normal) on each task | Not built. "Focus on now" orders by overdue first, then due date | Due dates already capture urgency well enough for a first version |
+| `focusNow`: up to 5 tasks | Up to 3 tasks | Emily asked to know what to "focus on first"; 3 felt like the right amount |
+| `phase` stored on each task | Calculated from the task's offset (`phase_for`) | One source of truth, so a task added later lands in the right phase automatically |
+| `completed` + `completedAt` | `done_on` (a date, or empty) | Same information in one field |
+| *(not in the diagram)* | `owner` (new hire / manager / HR / both) and `confirmed` | Only a task's owner can complete it; joint tasks need both people to confirm |
+| *(not in the diagram)* | `created_by` | Managers and HR can add their own tasks, tagged with who added them |
+| `Manager` mock list (`id`, `name`) | `Person` with a `role` and a `department` | HR is a person too, and managers are locked to their department |
+| `localStorage` (`brightpath-data`) | `data/state.json` on the server | It's a server app (Flask); the footer's "Reset demo data" re-seeds it |
+
+Still calculated rather than stored, as in the design: due dates, progress %, overdue, "Focus on now", and the current phase.
+
 ## Testing
 
 `pytest` runs 103 tests covering plan generation (department and General fallback), due dates, focus logic (cap, overdue first, empty and all-done states), form validation (blank name, unknown department, a manager from another department, bad or far-off dates, duplicates), adding and removing tasks (who may add, remove or check off what; template tasks can't be removed), HR assigning a task to several people (own copies, skipping duplicates, errors), dual sign-off (done only after both confirm, in either order; undoing one side reopens it; HR and other managers can't confirm), permissions (no checking off or viewing other people's tasks), JSON save and reload (including a corrupt file), and the manager empty state.
@@ -128,5 +153,7 @@ onboarding/
   templates/          HTML pages (Jinja)
   static/style.css
 tests/
+docs/
+  data-structure.pdf  original data model diagram
 .vscode/              interpreter, debug (F5), pytest and Ruff settings
 ```
