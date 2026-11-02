@@ -6,6 +6,8 @@ One place where a new hire at BrightPath Technologies sees what to do, and their
 
 **Who it's for:** the new hire first (Emily), then their manager (David), then HR (Sarah).
 
+**Diagrams:** [Who does what, and how the code works](docs/diagrams.pdf) · [Data model](docs/data-structure.pdf)
+
 ## Run it
 
 Requires Python 3.10+.
@@ -154,6 +156,7 @@ onboarding/
   static/style.css
 tests/
 docs/
+  diagrams.pdf        who does what, the joint-task flow, and how the code fits together
   data-structure.pdf  original data model diagram
 .vscode/              interpreter, debug (F5), pytest and Ruff settings
 ```
