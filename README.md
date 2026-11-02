@@ -6,7 +6,7 @@ One place where a new hire at BrightPath Technologies sees what to do, and their
 
 **Who it's for:** the new hire first (Emily), then their manager (David), then HR (Sarah).
 
-**Diagrams:** [Who does what, and how the code works](docs/diagrams.pdf) · [Data model](docs/data-structure.pdf)
+**Diagrams:** [Who does what, and how the code works](docs/diagrams.pdf) · [Key assumptions](docs/assumptions.pdf) · [Data model](docs/data-structure.pdf)
 
 ## Run it
 
@@ -64,6 +64,8 @@ Checked-off tasks are saved to `data/state.json`. **Reset demo data** in the foo
 They don't really conflict. David is talking about *what's in* the plan, and Emily is talking about *how much of it she sees at once*. So the plan can be complete and detailed while the screen stays short. Managers get the same treatment: their to-do list only shows this week.
 
 ## Assumptions
+
+The one-page summary is in [docs/assumptions.pdf](docs/assumptions.pdf); the details are below.
 
 - **Departments:** Engineering, Sales and Customer Support have their own templates. Operations has no template of its own and gets a short **General** template. That shows how any department without a template could still be onboarded.
 - **Every new hire has a manager when HR creates their plan.** The form requires one, because so much of the plan (the 1:1s, equipment, goals) depends on the manager. What happens without one is a question for Sarah, below.
@@ -157,6 +159,7 @@ onboarding/
 tests/
 docs/
   diagrams.pdf        who does what, the joint-task flow, and how the code fits together
+  assumptions.pdf     one-page summary of the key assumptions and why
   data-structure.pdf  original data model diagram
 .vscode/              interpreter, debug (F5), pytest and Ruff settings
 ```
